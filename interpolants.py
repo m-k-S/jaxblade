@@ -83,7 +83,38 @@ class TransfiniteInterpolation:
     def _vectorized_funcs(self, u, v):
         return vmap(self.C1_func)(v), vmap(self.C2_func)(u), vmap(self.C3_func)(v), vmap(self.C4_func)(u)
 
-# To enable GPU acceleration, you can use jit to compile the function:
-jit_transfinite_interpolation = jit(TransfiniteInterpolation)
+def get_arc_length(C_func, t1, t2):
 
+    """ Compute the arc length of a parametric curve ´C(t) = (x_0(t),..., x_n(t))´ using numerical integration
 
+    Parameters
+    ----------
+    C_func : function returning ndarray with shape (ndim, N)
+        Handle to a function that returns the parametric curve coordinates
+
+    t1 : scalar
+        Lower limit of integration for the arclength computation
+
+    t2 : scalar
+        Upper limit of integration for the arclength computation
+
+    Returns
+    -------
+    L : scalar
+        Arc length of curve C(t) in the interval [t1, t2]
+
+    """
+
+    # Compute the arc length differential using the central finite differences
+    # Be careful with the step-size selected, accurary is not critical, but rounding error must not bloe up
+    # It is not possible to use the complex step is the result of the arc-length computation is further differentiated
+    def get_arc_legth_differential(t, step=1e-3):
+        # dCdt = np.imag(C_func(t + 1j * step)) / step              # dC/dt = (dx_0/dt, ..., dx_n/dt)
+        dCdt = (C_func(t + step) - C_func(t - step))/(2*step)       # dC/dt = (dx_0/dt, ..., dx_n/dt)
+        dLdt = np.sqrt(np.sum(dCdt**2, axis=0))                     # dL/dt = [(dx_0/dt)^2 + ... + (dx_n/dt)^2]^(1/2)
+        return dLdt
+
+    # Compute the arc length of C(t) in the interval [t1, t2] by numerical integration
+    L = integrate.fixed_quad(get_arc_legth_differential, t1, t2, n=10)[0]
+
+    return L
