@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from jax import jit, vmap
+from .jax_utils import integrate
 
 class TransfiniteInterpolation:
     """
@@ -63,9 +64,7 @@ class TransfiniteInterpolation:
         term_1b = (1 - v) * C2 + v * C4
         term_2 = (1 - u) * (1 - v) * self.P12 + u * v * self.P34 + (1 - u) * v * self.P41 + u * (1 - v) * self.P23
 
-        S = term_1a + term_1b - term_2
-
-        return S
+        return term_1a + term_1b - term_2
 
     def _reshape_inputs(self, u, v):
         if jnp.isscalar(u) and jnp.isscalar(v):
@@ -109,12 +108,12 @@ def get_arc_length(C_func, t1, t2):
     # Be careful with the step-size selected, accurary is not critical, but rounding error must not bloe up
     # It is not possible to use the complex step is the result of the arc-length computation is further differentiated
     def get_arc_legth_differential(t, step=1e-3):
-        # dCdt = np.imag(C_func(t + 1j * step)) / step              # dC/dt = (dx_0/dt, ..., dx_n/dt)
+        # dCdt = jnp.imag(C_func(t + 1j * step)) / step              # dC/dt = (dx_0/dt, ..., dx_n/dt)
         dCdt = (C_func(t + step) - C_func(t - step))/(2*step)       # dC/dt = (dx_0/dt, ..., dx_n/dt)
-        dLdt = np.sqrt(np.sum(dCdt**2, axis=0))                     # dL/dt = [(dx_0/dt)^2 + ... + (dx_n/dt)^2]^(1/2)
+        dLdt = jnp.sqrt(jnp.sum(dCdt**2, axis=0))                     # dL/dt = [(dx_0/dt)^2 + ... + (dx_n/dt)^2]^(1/2)
         return dLdt
 
     # Compute the arc length of C(t) in the interval [t1, t2] by numerical integration
-    L = integrate.fixed_quad(get_arc_legth_differential, t1, t2, n=10)[0]
+    L = integrate.romb(get_arc_legth_differential, t1, t2, n=10)[0]
 
     return L
