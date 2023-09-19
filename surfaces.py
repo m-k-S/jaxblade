@@ -1,8 +1,8 @@
 from jax import jit
 import jax.numpy as jnp
 from interpolants import BilinearInterpolation, TransfiniteInterpolation, get_arc_length
-from .parameterization.camber_thickness_params import Blade2DCamberThickness
-from .parameterization.connecting_arc_params import Blade2DConnectingArcs
+from parameterization.camber_thickness_params import Blade2DCamberThickness
+from parameterization.connecting_arc_params import Blade2DConnectingArcs
 
 ##############################################
 # INTERPOLATING FUNCTIONS
@@ -19,24 +19,24 @@ def make_meridional_channel(design_variables):
     """
 
     # Define a function to compute the x-coordinate of the meridional channel as x(u,v)
-    meridional_channel_x = jit(TransfiniteInterpolation(design_variables.functions["x_leading"],
+    meridional_channel_x = TransfiniteInterpolation(design_variables.functions["x_leading"],
                                                         design_variables.functions["x_hub"],
                                                         design_variables.functions["x_trailing"],
                                                         design_variables.functions["x_shroud"],
                                                         design_variables.control_points["x_leading"][0],
                                                         design_variables.control_points["x_trailing"][0],
                                                         design_variables.control_points["x_trailing"][-1],
-                                                        design_variables.control_points["x_leading"][-1]))
+                                                        design_variables.control_points["x_leading"][-1])
 
     # Define a function to compute the z-coordinate of the meridional channel as z(u,v)
-    meridional_channel_z = jit(TransfiniteInterpolation(design_variables.functions["z_leading"],
+    meridional_channel_z = TransfiniteInterpolation(design_variables.functions["z_leading"],
                                                         design_variables.functions["z_hub"],
                                                         design_variables.functions["z_trailing"],
                                                         design_variables.functions["z_shroud"],
                                                         design_variables.control_points["z_leading"][0],
                                                         design_variables.control_points["z_trailing"][0],
                                                         design_variables.control_points["z_trailing"][-1],
-                                                        design_variables.control_points["z_leading"][-1]))
+                                                        design_variables.control_points["z_leading"][-1])
 
     return meridional_channel_x, meridional_channel_z
 
@@ -60,7 +60,7 @@ def section_coordinates(u_section, v_section, design_variables, cascade_type="AN
 
     section_variables = {
         k: design_variables.functions[k](v_section)
-        for k in design_variables.names
+        for k in design_variables.names_2D
     }
 
     # Compute the coordinates of a blade section with an unitary meridional chord
@@ -123,15 +123,16 @@ def section_coordinates(u_section, v_section, design_variables, cascade_type="AN
 ##############################################
 
 
-def build_surface_interpolant(u, v, num_points_section=500, n_sections=10):
+def build_surface_interpolant(u, v, design_variables, num_points_section=500, n_sections=10, cascade_type="ANNULAR"):
     # Compute the coordinates of several blade sections
     # The (u,v) parametrization used to compute the blade sections must be regular (necessary for interpolation)
     num_points_section = 500
     u_interp = jnp.linspace(0.00, 1, num_points_section)
     v_interp = jnp.linspace(0.00, 1, n_sections)
     S_interp = jnp.zeros((3, num_points_section, n_sections), dtype=complex)
+
     for k in range(n_sections):
-        S_interp[..., k] = section_coordinates(u_interp, v_interp[k])
+        S_interp = S_interp.at[..., k].set(section_coordinates(u_interp, v_interp[k], design_variables, cascade_type=cascade_type))
 
     # Create the interpolator objects for the (x,y,z) coordinates
     x_function = BilinearInterpolation(u_interp, v_interp, S_interp[0, ...])
@@ -197,9 +198,7 @@ def build_hub_coordinates(u, design_variables):
     return hub_coordinates
 
 
-#        self.u_hub = np.linspace(0, 1, 100)
-#        self.u_shroud = np.linspace(0, 1, 100)
-def get_extended_shroud_coordinates(u, design_variables):
+def build_shroud_coordinates(u, design_variables):
 
     """ Compute the coordinates of the hub surface in the (x,z) plane
 

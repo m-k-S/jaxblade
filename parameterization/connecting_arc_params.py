@@ -1,7 +1,7 @@
 import copy
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-from bspline import NurbsCurve
+from .bspline import NurbsCurve
 
 class Blade2DConnectingArcs:
 
@@ -179,7 +179,7 @@ class Blade2DConnectingArcs:
 
         # Weight of the control points
         W = jnp.ones((n + 1,), dtype=complex)                    # Unitary weight
-        W[1] = jnp.sin(a)                                        # Special weight for the second control point
+        W = W.at[1].set(jnp.sin(a))                              # Special weight for the second control point
 
         # Define the order of the basis polynomials
         # Linear (p = 1), Quadratic (p = 2), Cubic (p = 3), etc.
@@ -253,7 +253,7 @@ class Blade2DConnectingArcs:
 
         # Weight of the control points
         W = jnp.ones((n + 1,), dtype=complex)                    # Unitary weight
-        W[1] = jnp.sin(a)                                        # Special weight for the second control point
+        W = W.at[1].set(jnp.sin(a))                              # Special weight for the second control point
 
         # Define the order of the basis polynomials
         # Linear (p = 1), Quadratic (p = 2), Cubic (p = 3), etc.

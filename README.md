@@ -1,21 +1,4 @@
-# Code Structure
+# Notes
 
-## Refactored
-
-- BSplines
-- CamberThickness
-- ConnectingArc
-- Interpolants
-    - TransfiniteInterpolant
-- Design Variables
-
-## To-do
-
-- Surfaces
-    - Meridional Channel
-        - Hub Coordinates
-        - Shroud Coordinates
-    - Surface Interpolant
-        - BilinearInterpolant
-    - Hub Surface
-    - Shroud Coordinates
+- JIT compilation witH JAX does not work for any of the methods due to a "ConcretizationTypeError"?
+- scipy.integrate methods are not implemented in JAX yet, so get_arc_length is using regular scipy

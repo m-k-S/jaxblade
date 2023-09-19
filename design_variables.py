@@ -1,8 +1,9 @@
+from copy import deepcopy
 import jax.numpy as jnp
-from .parameterization.bspline import BSplineCurve
+from parameterization.bspline import BSplineCurve
 
 class DesignVariables:
-    def __init__(self, config_params, parameterization_type="CONNECTING_ARCS"):
+    def __init__(self, config_params):
         # Array of variable names for the meridional channel
         MERIDIONAL_CHANNEL_DESIGN_VARIABLES =  ['x_leading',
                                                 'y_leading',
@@ -47,16 +48,21 @@ class DesignVariables:
                                                             'dist_2',
                                                             'dist_3',
                                                             'dist_4']
+        
+        config_params = deepcopy(config_params) # avoid modifying the original dictionary
     
-        if parameterization_type == "CONNECTING_ARCS":
+        self.parameterization = config_params['PARAMETERIZATION_TYPE']
+
+        if self.parameterization == "CONNECTING_ARCS":
             DV_names = MERIDIONAL_CHANNEL_DESIGN_VARIABLES + BLADE_SECTION_CONNECTING_ARCS_DESIGN_VARIABLES
-        elif parameterization_type == "CAMBER_THICKNESS":
+        elif self.parameterization == "CAMBER_THICKNESS":
             DV_names = MERIDIONAL_CHANNEL_DESIGN_VARIABLES + BLADE_SECTION_CAMBER_THICKNESS_DESIGN_VARIABLES
         else:
             raise Exception('Choose a valid option for PARAMETRIZATION_TYPE: "CONNECTING_ARCS" or "CAMBER_THICKNESS"')
         
-        self.parameterization = parameterization_type
+
         self.names = DV_names
+        self.names_2D = DV_names[9:]
 
         DV_control_points = {name: config_params[name] for name in DV_names}
 
@@ -78,12 +84,14 @@ class DesignVariables:
     # Define a function for creating the design variable functions
     def get_DVs_functions(self, design_variables_control_points):
 
-        # Design variable functions based on a BSplineCurve parametrization
-        def DV_function(P, p, U):
-            nn = P.shape[1]
+        functions = {}
+        for name in self.names:
+            P = jnp.array([design_variables_control_points[name]])
+            nn = jnp.shape(P)[1]
             n = nn - 1
             p = min(n, 3)
             U = jnp.concatenate((jnp.zeros(p), jnp.linspace(0, 1, n - p + 2), jnp.ones(p)))
-            return BSplineCurve(U, P, p)
-        
-        return {name: DV_function(P=jnp.array([design_variables_control_points[name]]), p=None, U=None) for name in design_variables_control_points}
+            
+            functions[name] = BSplineCurve(P, p, U).get_BSplineCurve_value
+
+        return functions

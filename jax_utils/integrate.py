@@ -126,7 +126,7 @@ def romb(function, a, b, args=(), divmax=6, return_error=False):
     >>> print("%g %g" % (2*result, erf(1)))
     0.842701 0.842701
     """
-    vfunc = jit(lambda x: function(x, *args))
+    vfunc = lambda x: function(x, *args)
 
     n = 1
     interval = [a, b]

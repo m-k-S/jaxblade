@@ -1,7 +1,7 @@
 import copy
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-from bspline import BSplineCurve
+from .bspline import BSplineCurve
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
